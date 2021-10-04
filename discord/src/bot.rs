@@ -123,22 +123,4 @@ impl Bot
         Client::keep_awake().await;
     }
 
-    pub async fn channel_id_send_text(channel_id: Snowflake, client: BotClient, content: &str, tts: bool) {
-
-        let message = serde_json::json!({
-            "content": content,
-            "tts": tts
-        });
-
-        let channel_id = match channel_id {
-            Snowflake::String(value) => value,
-            Snowflake::Integer(value) => value.to_string()
-        };
-
-        let extension = format!("/channels/{}/messages", channel_id);
-        let payload = discord::HttpRequest::string_new(extension, client).await;
-
-        payload.post(message).await.unwrap();
-    }
-
 }

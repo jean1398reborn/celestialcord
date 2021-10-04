@@ -278,12 +278,6 @@ impl Gateway {
         }
     }
 
-    pub async fn run_events(client: bot::BotClient, gateway_event: GatewayEvent) {
-
-        let client = client.clone();
-
-    }
-
     pub async fn opcode_conversion(check_value : String) -> String {
 
         let check_value: serde_json::Value = serde_json::from_str(check_value.as_str()).expect("Failed to check opcode in json conversion");
@@ -298,7 +292,6 @@ impl Gateway {
             1 => SerdeString(String::from("HEARTBEAT")),
             _ => check_value["t"].clone()
         };
-
 
         let return_string = serde_json::json!({
            "op": check_value["op"],
