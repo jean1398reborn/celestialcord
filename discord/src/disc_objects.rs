@@ -139,8 +139,8 @@ pub struct Attachment {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct EmbedFooter {
     pub text: String,
-    pub value: String,
-    pub inline: Option<bool>,
+    pub icon_url: Option<String>,
+    pub proxy_icon_url: Option<bool>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -177,7 +177,7 @@ pub struct Embed {
     pub title: Option<String>,
 
     #[serde(rename = "type")]
-    pub embed_type: String,
+    pub embed_type: Option<String>,
 
     pub description: Option<String>,
     pub url: Option<String>,
@@ -678,4 +678,285 @@ pub enum GatewayEventBinding {
     VoiceStateUpdate,
     VoiceServerUpdate,
     WebhooksUpdate,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct Reply {
+    pub message_id: Option<Snowflake>,
+    pub channel_id: Option<Snowflake>,
+    pub guild_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct ReplyMessage {
+    pub content: Option<String>,
+    pub tts: bool,
+    pub embeds: Option<Vec<Embed>>,
+    pub message_reference: Option<Reply>,
+    pub sticker_ids: Option<Vec<Snowflake>>,
+}
+
+impl Reply {
+    fn new(message_id: Option<Snowflake>, channel_id: Option<Snowflake>, guild_id: Option<Snowflake>) -> Self {
+        Self {
+            message_id,
+            channel_id,
+            guild_id,
+        }
+    }
+}
+
+impl ReplyMessage {
+    pub fn new(tts: bool) -> Self {
+        Self {
+            content: None,
+            tts,
+            embeds: None,
+            message_reference: None,
+            sticker_ids : None,
+        }
+    }
+
+    pub fn content_str(mut self, content: &str) -> ReplyMessage {
+        self.content = Some(String::from(content));
+        self
+    }
+
+    pub fn content_string(mut self, content: String) -> ReplyMessage {
+        self.content = Some(content);
+        self
+    }
+
+    pub fn add_embed(mut self, embed: Embed) -> ReplyMessage {
+
+        if self.embeds.is_some() {
+            let mut current = self.embeds.clone().unwrap();
+            current.push(embed);
+
+            self.embeds = Some(current)
+
+        } else {
+            self.embeds = Some(vec![embed])
+        }
+
+        self
+
+    }
+
+    pub fn reply_message(mut self, message: Message) -> ReplyMessage {
+
+        let reply = Reply::new(Some(message.id), None, None);
+        self.message_reference = Some(reply);
+
+        self
+    }
+
+    pub async fn send(&self, channel_id: Snowflake, client: bot::BotClient) -> Message {
+
+        let message = serde_json::json!({
+            "content": self.content,
+            "tts": self.tts,
+            "embeds": self.embeds,
+            "message_reference": self.message_reference,
+            "sticker_ids": self.sticker_ids
+        });
+
+        let channel_id = match channel_id {
+            Snowflake::String(value) => value,
+            Snowflake::Integer(value) => value.to_string()
+        };
+
+        let extension = format!("/channels/{}/messages", channel_id);
+        let payload = discord::HttpRequest::string_new(extension, client).await;
+
+        let response = payload.post(message).await;
+        let response_message : Message;
+
+        response_message = response
+            .expect("Failed to send message!")
+            .json().await.expect("Failed to turn response into message! ");
+
+        response_message
+    }
+
+}
+
+impl Embed {
+    pub fn new(title : &str, description: &str, colour : u64) -> Self {
+        Self {
+            title: Some(String::from(title)),
+            embed_type: Some(String::from("rich")),
+            description: Some(String::from(description)),
+            url: None,
+            timestamp: None,
+            colour: Some(colour),
+            footer: None,
+            thumbnail: None,
+            image: None,
+            video: None,
+            provider: None,
+            author: None,
+            fields: None,
+        }
+    }
+    
+    pub fn video(mut self, url: &str) -> Embed {
+        self.video = Some(
+            EmbedAttachment::new(
+                url.to_string()
+            )
+        );
+
+        self
+    }
+    
+    pub fn image(mut self, url: &str) -> Embed {
+        self.image = Some(
+            EmbedAttachment::new(
+                url.to_string()
+            )
+        );
+
+        self
+    }
+    
+    pub fn thumbnail(mut self, url: &str) -> Embed{
+        self.thumbnail = Some(
+            EmbedAttachment::new(
+                url.to_string()
+            )
+        );
+
+        self
+    }
+
+    pub fn url(mut self, url: &str) -> Embed {
+        self.url = Some(String::from(url));
+        self
+    }
+
+    pub fn timestamp(mut self, timestamp : &str) -> Embed {
+        self.timestamp = Some(timestamp.to_string());
+        self
+    }
+
+    pub fn change_colour(mut self, new_colour: u64) -> Embed {
+        self.colour = Some(new_colour);
+        self
+    }
+
+    pub fn footer(mut self, text: &str, icon_url: Option<&str>) -> Embed {
+
+        let icon_url : Option<String> = match icon_url {
+            Some(value) => Some(value.to_string()),
+            None => None
+        };
+
+        self.footer = Some(
+            EmbedFooter::new(
+                text.to_string(),
+                icon_url,
+            )
+        );
+
+        self
+    }
+
+    pub fn author(mut self, name: &str, icon_url: Option<&str>, url: Option<&str>) -> Embed {
+
+        let icon_url : Option<String> = match icon_url {
+            Some(value) => Some(value.to_string()),
+            None => None
+        };
+
+        let url : Option<String> = match url {
+            Some(value) => Some(value.to_string()),
+            None => None
+        };
+
+        self.author = Some(
+            EmbedAuthor::new(
+                name.to_string(),
+                url,
+                icon_url,
+            )
+        );
+
+        self
+    }
+
+    pub fn add_field(mut self, name: &str, value: &str, inline: bool) -> Embed {
+
+        let field = EmbedField::new(
+            name.to_string(),
+            value.to_string(),
+            inline,
+        );
+
+        if self.fields.is_some() {
+            let mut current = self.fields.clone().unwrap();
+
+            current.push(field);
+
+            self.fields = Some(current)
+
+        } else {
+            self.fields = Some(vec![field])
+        }
+
+        self
+    }
+
+}
+
+impl EmbedField {
+    pub fn new(name: String, value: String, inline: bool) -> Self {
+        Self {
+            name,
+            value,
+            inline : Some(inline),
+        }
+    }
+}
+
+impl EmbedAuthor {
+    pub fn new(name: String, url: Option<String>, icon_url: Option<String>) -> Self {
+        Self {
+            name,
+            url,
+            icon_url,
+            proxy_icon_url: None,
+        }
+    }
+}
+
+impl EmbedFooter {
+    pub fn new(text: String, icon_url : Option<String>) -> Self {
+        Self {
+            text,
+            icon_url,
+            proxy_icon_url : None,
+        }
+    }
+}
+
+impl EmbedAttachment {
+
+    pub fn new(url : String) -> Self {
+        Self {
+            url,
+            proxy_url: None,
+            height: None,
+            width: None,
+        }
+    }
+}
+
+impl Message {
+    pub fn is_bot(&self) -> bool {
+        match self.author.bot {
+            Some(value) => value,
+            None => false,
+        }
+    }
 }
