@@ -74,24 +74,161 @@ pub struct GuildStickersUpdateEvent {
 }
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildMembersChunkEvent {
-    pub guild_id : Snowflake,
-    pub members : Vec<GuildMember>,
+    pub guild_id: Snowflake,
+    pub members: Vec<GuildMember>,
     pub chunk_index: u64,
     pub chunk_count: u64,
     pub not_found: Option<Vec<String>>,
     pub presences: Option<Vec<PresenceUpdate>>,
-    pub nonce: Nonce
+    pub nonce: Nonce,
 }
 
-[derive(Clone, Deserialize, Debug, Serialize)]
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildRoleEvent {
     pub guild_id: Snowflake,
     pub role: Role,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildRoleDeleteEvent {
+    pub guild_id: Snowflake,
+    pub role_id: Snowflake,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct IntegrationAccount {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct IntegrationApplication {
+    pub id: Snowflake,
+    pub name: String,
+    pub icon: Option<String>,
+    pub description: String,
+    pub summary: String,
+    pub bot: Option<User>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct Integration {
+    pub id: Snowflake,
+    pub name: String,
+
+    #[serde(rename = "type")]
+    pub integration_type: String,
+    pub enabled: bool,
+    pub syncing: Option<bool>,
+    pub role_id: Option<Snowflake>,
+    pub enable_emoticons: Option<bool>,
+    pub expire_behaviour: u64,
+    pub expire_grace_period: u64,
+    pub user: Option<User>,
+    pub account: IntegrationAccount,
+    pub synced_at: Option<String>, //timestamp
+    pub subscriber_count: Option<u64>,
+    pub revoked: Option<bool>,
+    pub application: IntegrationApplication,
+    pub guild_id: Option<Snowflake> // present in integration create && update event
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct IntegrationDeleteEvent {
+    pub id: Snowflake,
+    pub guild_id: Snowflake,
+    pub application_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct InviteStageInstance {
+    pub members: Vec<GuildMember>,
+    pub participant_count: u64,
+    pub speaker_count: u64,
+    pub topic: String
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct ResolvedData {
+    pub users: Option<std::collections::HashMap<Snowflake, User>>,
+    pub members: Option<std::collections::HashMap<Snowflake, GuildMember>>,
+    pub roles: Option<std::collections::HashMap<Snowflake, Role>>,
+    pub channels: Option<std::collections::HashMap<Snowflake, Channel>>,
+    pub messages: Option<std::collections::HashMap<Snowflake, Message>>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct AppMessageInteractionDataOption {
+    pub name: String,
+
+    // long boi
+    #[serde(rename = "type")]
+    pub app_message_interaction_data_type: u64,
+    pub value: Option<u64>,
+    pub options: Option<Vec<AppMessageInteractionDataOption>>,
+
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct InteractionData {
+    pub id: Snowflake,
+    pub name: String,
+
+    #[serde(rename = "type")]
+    pub interaction_data_type: u64,
+    pub resolved: Option<ResolvedData>,
+    pub options: Option<Vec<AppMessageInteractionDataOption>>,
+    pub custom_id: Option<String>,
+    pub component_type: Option<u64>,
+    pub values: Option<Vec<SelectOption>>,
+    pub target_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct Interaction {
+    pub id: Snowflake,
+    pub application_id: Snowflake,
+
+    #[serde(rename = "type")]
+    pub interaction_type: u64,
+    pub interaction_data: Option<Vec<InteractionData>>,
+    pub guild_id: Option<Snowflake>,
+    pub channel_id: Option<Snowflake>,
+    pub member: Option<GuildMember>, //sent in guilds
+    pub user: Option<User>, //sent in dms
+    pub token: String,
+    pub version: u64,
+    pub message: Option<Message>
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct InviteCreateEvent {
+    pub channel_id: Snowflake,
+    pub code: String,
+    pub created_at: String, //timestamp
+    pub guild_id: Option<Snowflake>,
+    pub inviter: Option<User>,
+    pub max_age: u64,
+    pub max_uses: u64,
+    pub target_type: Option<u64>,
+    pub target_user: Option<User>,
+    pub target_application: Option<Application>,
+    pub temporary: bool,
+    pub uses: u64
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct InviteDeleteEvent {
+    pub channel_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
+    pub code: String,
+}
+
+
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildIdEvent {
-    pub guild_id: Snowflake
+    pub guild_id: Snowflake,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -122,7 +259,6 @@ pub struct ThreadMembersUpdateEvent {
     pub added_members: Option<Vec<ThreadMember>>,
     pub removed_member_ids: Option<Vec<Snowflake>>,
 }
-
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ThreadMetadata {
@@ -199,8 +335,7 @@ pub struct GuildMember {
     pub pending: Option<bool>,
     pub permissions: Option<String>,
 
-
-    pub guild_id: Option<Snowflake> // Present in guild member add event!
+    pub guild_id: Option<Snowflake>, // Present in guild member add event!
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -374,6 +509,7 @@ pub struct Application {
     pub cover_image: Option<String>,
     pub flags: u64,
 }
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct MessageInteraction {
     pub id: Snowflake,
@@ -485,7 +621,7 @@ pub struct ActivitySecret {
     pub join: Option<String>,
     pub spectate: Option<String>,
 
-    #[serde(rename="match")]
+    #[serde(rename = "match")]
     pub activity_secret_match: Option<String>,
 }
 
@@ -499,7 +635,7 @@ pub struct ActivityEmoji {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ActivityButton {
     pub label: String,
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -522,7 +658,6 @@ pub struct Activity {
     pub instance: Option<bool>,
     pub flags: Option<u64>,
     pub buttons: Option<Vec<ActivityButton>>,
-
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -539,7 +674,6 @@ pub struct PresenceUpdate {
     pub status: String,
     pub activities: Vec<Activity>,
     pub client_status: ClientStatus,
-
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -592,7 +726,7 @@ pub struct Sticker {
     pub tags: String,
     pub asset: String,
 
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub sticker_type: u64,
     pub format_type: u64,
     pub available: Option<bool>,
@@ -652,7 +786,6 @@ pub struct Guild {
     pub nsfw_level: u64,
     pub stage_instances: Option<Vec<StageInstance>>,
     pub stickers: Option<Vec<Sticker>>,
-
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -664,7 +797,7 @@ pub struct UnavailableGuild {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ReadyEventApplication {
     // partial application for the ready event,
-    pub id : Snowflake,
+    pub id: Snowflake,
     pub flags: Option<u64>,
 }
 
@@ -675,8 +808,8 @@ pub struct Hello {
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ReadyEvent {
-    pub v : u64,
-    pub user : User,
+    pub v: u64,
+    pub user: User,
     pub guilds: Vec<UnavailableGuild>,
     pub session_id: String,
     pub shard: Option<Vec<u64>>,
@@ -701,7 +834,10 @@ pub struct ReactionAddEvent {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone)]
-#[serde(rename_all(serialize = "SCREAMING_SNAKE_CASE", deserialize = "SCREAMING_SNAKE_CASE"))]
+#[serde(rename_all(
+    serialize = "SCREAMING_SNAKE_CASE",
+    deserialize = "SCREAMING_SNAKE_CASE"
+))]
 pub enum GatewayEventBinding {
     HeartbeatOk,
     Heartbeat,
@@ -777,7 +913,11 @@ pub struct ReplyMessage {
 }
 
 impl Reply {
-    fn new(message_id: Option<Snowflake>, channel_id: Option<Snowflake>, guild_id: Option<Snowflake>) -> Self {
+    fn new(
+        message_id: Option<Snowflake>,
+        channel_id: Option<Snowflake>,
+        guild_id: Option<Snowflake>,
+    ) -> Self {
         Self {
             message_id,
             channel_id,
@@ -793,7 +933,7 @@ impl ReplyMessage {
             tts,
             embeds: None,
             message_reference: None,
-            sticker_ids : None,
+            sticker_ids: None,
         }
     }
 
@@ -808,23 +948,19 @@ impl ReplyMessage {
     }
 
     pub fn add_embed(mut self, embed: Embed) -> ReplyMessage {
-
         if self.embeds.is_some() {
             let mut current = self.embeds.clone().unwrap();
             current.push(embed);
 
             self.embeds = Some(current)
-
         } else {
             self.embeds = Some(vec![embed])
         }
 
         self
-
     }
 
     pub fn reply_message(mut self, message: Message) -> ReplyMessage {
-
         let reply = Reply::new(Some(message.id), None, None);
         self.message_reference = Some(reply);
 
@@ -832,7 +968,6 @@ impl ReplyMessage {
     }
 
     pub async fn send(&self, channel_id: Snowflake, client: bot::BotClient) -> Message {
-
         let message = serde_json::json!({
             "content": self.content,
             "tts": self.tts,
@@ -843,26 +978,27 @@ impl ReplyMessage {
 
         let channel_id = match channel_id {
             Snowflake::String(value) => value,
-            Snowflake::Integer(value) => value.to_string()
+            Snowflake::Integer(value) => value.to_string(),
         };
 
         let extension = format!("/channels/{}/messages", channel_id);
         let payload = discord::HttpRequest::string_new(extension, client).await;
 
         let response = payload.post(message).await;
-        let response_message : Message;
+        let response_message: Message;
 
         response_message = response
             .expect("Failed to send message!")
-            .json().await.expect("Failed to turn response into message! ");
+            .json()
+            .await
+            .expect("Failed to turn response into message! ");
 
         response_message
     }
-
 }
 
 impl Embed {
-    pub fn new(title : &str, description: &str, colour : u64) -> Self {
+    pub fn new(title: &str, description: &str, colour: u64) -> Self {
         Self {
             title: Some(String::from(title)),
             embed_type: Some(String::from("rich")),
@@ -879,33 +1015,21 @@ impl Embed {
             fields: None,
         }
     }
-    
+
     pub fn video(mut self, url: &str) -> Embed {
-        self.video = Some(
-            EmbedAttachment::new(
-                url.to_string()
-            )
-        );
+        self.video = Some(EmbedAttachment::new(url.to_string()));
 
         self
     }
-    
+
     pub fn image(mut self, url: &str) -> Embed {
-        self.image = Some(
-            EmbedAttachment::new(
-                url.to_string()
-            )
-        );
+        self.image = Some(EmbedAttachment::new(url.to_string()));
 
         self
     }
-    
-    pub fn thumbnail(mut self, url: &str) -> Embed{
-        self.thumbnail = Some(
-            EmbedAttachment::new(
-                url.to_string()
-            )
-        );
+
+    pub fn thumbnail(mut self, url: &str) -> Embed {
+        self.thumbnail = Some(EmbedAttachment::new(url.to_string()));
 
         self
     }
@@ -915,7 +1039,7 @@ impl Embed {
         self
     }
 
-    pub fn timestamp(mut self, timestamp : &str) -> Embed {
+    pub fn timestamp(mut self, timestamp: &str) -> Embed {
         self.timestamp = Some(timestamp.to_string());
         self
     }
@@ -926,52 +1050,34 @@ impl Embed {
     }
 
     pub fn footer(mut self, text: &str, icon_url: Option<&str>) -> Embed {
-
-        let icon_url : Option<String> = match icon_url {
+        let icon_url: Option<String> = match icon_url {
             Some(value) => Some(value.to_string()),
-            None => None
+            None => None,
         };
 
-        self.footer = Some(
-            EmbedFooter::new(
-                text.to_string(),
-                icon_url,
-            )
-        );
+        self.footer = Some(EmbedFooter::new(text.to_string(), icon_url));
 
         self
     }
 
     pub fn author(mut self, name: &str, icon_url: Option<&str>, url: Option<&str>) -> Embed {
-
-        let icon_url : Option<String> = match icon_url {
+        let icon_url: Option<String> = match icon_url {
             Some(value) => Some(value.to_string()),
-            None => None
+            None => None,
         };
 
-        let url : Option<String> = match url {
+        let url: Option<String> = match url {
             Some(value) => Some(value.to_string()),
-            None => None
+            None => None,
         };
 
-        self.author = Some(
-            EmbedAuthor::new(
-                name.to_string(),
-                url,
-                icon_url,
-            )
-        );
+        self.author = Some(EmbedAuthor::new(name.to_string(), url, icon_url));
 
         self
     }
 
     pub fn add_field(mut self, name: &str, value: &str, inline: bool) -> Embed {
-
-        let field = EmbedField::new(
-            name.to_string(),
-            value.to_string(),
-            inline,
-        );
+        let field = EmbedField::new(name.to_string(), value.to_string(), inline);
 
         if self.fields.is_some() {
             let mut current = self.fields.clone().unwrap();
@@ -979,14 +1085,12 @@ impl Embed {
             current.push(field);
 
             self.fields = Some(current)
-
         } else {
             self.fields = Some(vec![field])
         }
 
         self
     }
-
 }
 
 impl EmbedField {
@@ -994,7 +1098,7 @@ impl EmbedField {
         Self {
             name,
             value,
-            inline : Some(inline),
+            inline: Some(inline),
         }
     }
 }
@@ -1011,18 +1115,17 @@ impl EmbedAuthor {
 }
 
 impl EmbedFooter {
-    pub fn new(text: String, icon_url : Option<String>) -> Self {
+    pub fn new(text: String, icon_url: Option<String>) -> Self {
         Self {
             text,
             icon_url,
-            proxy_icon_url : None,
+            proxy_icon_url: None,
         }
     }
 }
 
 impl EmbedAttachment {
-
-    pub fn new(url : String) -> Self {
+    pub fn new(url: String) -> Self {
         Self {
             url,
             proxy_url: None,
