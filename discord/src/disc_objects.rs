@@ -48,6 +48,83 @@ pub struct PermissionOverwrite {
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct ThreadListSyncEvent {
+    pub guild_id: Snowflake,
+    pub channel_ids: Option<Vec<Snowflake>>,
+    pub threads: Vec<Channel>,
+    pub members: Vec<ThreadMember>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildBanEvent {
+    pub guild_id: Snowflake,
+    pub user: User,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildEmojisUpdateEvent {
+    pub guild_id: Snowflake,
+    pub emojis: Vec<Emoji>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildStickersUpdateEvent {
+    pub guild_id: Snowflake,
+    pub emojis: Vec<Emoji>,
+}
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildMembersChunkEvent {
+    pub guild_id : Snowflake,
+    pub members : Vec<GuildMember>,
+    pub chunk_index: u64,
+    pub chunk_count: u64,
+    pub not_found: Option<Vec<String>>,
+    pub presences: Option<Vec<PresenceUpdate>>,
+    pub nonce: Nonce
+}
+
+[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildRoleEvent {
+    pub guild_id: Snowflake,
+    pub role: Role,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildIdEvent {
+    pub guild_id: Snowflake
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildMemberRemoveEvent {
+    pub guild_id: Snowflake,
+    pub user: User,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct GuildMemberUpdateEvent {
+    pub guild_id: Snowflake,
+    pub roles: Vec<Snowflake>,
+    pub user: User,
+    pub nick: Option<String>,
+    pub avatar: Option<String>,
+    pub joined_at: Option<String>,
+    pub premium_since: Option<String>,
+    pub deaf: Option<bool>,
+    pub mute: Option<bool>,
+    pub pending: Option<bool>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct ThreadMembersUpdateEvent {
+    pub id: Snowflake,
+    pub guild_id: Snowflake,
+    pub member_count: u64,
+    pub added_members: Option<Vec<ThreadMember>>,
+    pub removed_member_ids: Option<Vec<Snowflake>>,
+}
+
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ThreadMetadata {
     pub archived: bool,
     pub auto_archive_duration: u64,
@@ -121,6 +198,9 @@ pub struct GuildMember {
     pub mute: bool,
     pub pending: Option<bool>,
     pub permissions: Option<String>,
+
+
+    pub guild_id: Option<Snowflake> // Present in guild member add event!
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]

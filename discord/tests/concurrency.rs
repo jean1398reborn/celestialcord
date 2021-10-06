@@ -15,19 +15,14 @@ async fn on_ready(returned: discord::GatewayEvent, client: bot::BotClient) {
 }
 
 async fn response(message : disc_objects::Message, client: bot::BotClient) {
-    let embed = disc_objects::Embed::new("Hello", "This is an embed with a burger!", 0xFF0000)
-        .thumbnail("https://img.delicious.com.au/B80fkYtW/w759-h506-cfill/del/2016/10/jamie-olivers-aussie-style-burger-37334-3.jpg");
+    let embed = disc_objects::Embed::new("Hello", "Snootiermoon!", 0xFF0000)
+        .image("https://c.tenor.com/zDUT9yR2Zz0AAAAC/big-buger-eat-buger.gif");
 
     let mut reply = disc_objects::ReplyMessage::new(false)
         .add_embed(embed)
         .reply_message(message.clone());
 
     let response = reply.send(message.channel_id.clone(), client.clone()).await;
-
-    let mut reply = disc_objects::ReplyMessage::new(false)
-        .content_str("And i can even reply to myself!\n\n But remember that rate limits exist so dont spam it!")
-        .reply_message(response.clone())
-        .send(message.channel_id.clone(), client.clone()).await;
 
 }
 
@@ -67,7 +62,6 @@ async fn on_message(returned: discord::GatewayEvent, client: bot::BotClient) {
         response(message.clone(), client.clone()).await;
     }
 
-
 }
 
 
@@ -80,6 +74,10 @@ async fn main() {
         std::env::var("BOT_TOKEN").expect("Put bot token in env_var!"),
         vec![Intent::all()],
     );
+
+
+
+
 
     // add event system, where you add a function to be called to an event.
     bot.add_event(disc_objects::GatewayEventBinding::MessageCreate, add_fn!(on_message)).await;
