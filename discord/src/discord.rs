@@ -133,22 +133,22 @@ pub enum GatewayEvent {
     InviteCreate(disc_objects::InviteCreateEvent),
     InviteDelete(disc_objects::InviteDeleteEvent),
     MessageCreate(disc_objects::Message),
-    MessageUpdate,
-    MessageDelete,
-    MessageDeleteBulk,
-    MessageReactionAdd(disc_objects::ReactionAddEvent),
-    MessageReactionRemove,
-    MessageReactionRemoveAll,
-    MessageReactionRemoveEmoji,
-    PresenceUpdate,
-    StageInstanceCreate,
-    StageInstanceDelete,
-    StageInstanceUpdate,
-    TypingStart,
-    UserUpdate,
-    VoiceStateUpdate,
-    VoiceServerUpdate,
-    WebhooksUpdate,
+    MessageUpdate(disc_objects::Message),
+    MessageDelete(disc_objects::MessageDeleteEvent),
+    MessageDeleteBulk(disc_objects::MessageBulkDeleteEvent),
+    MessageReactionAdd(disc_objects::MessageReactionAddEvent),
+    MessageReactionRemove(disc_objects::MessageReactionRemoveEvent),
+    MessageReactionRemoveAll(disc_objects::MessageRemoveAllReactionEvent),
+    MessageReactionRemoveEmoji(disc_objects::MessageReactionRemoveEmojiEvent),
+    PresenceUpdate(disc_objects::PresenceUpdate),
+    StageInstanceCreate(disc_objects::StageInstance),
+    StageInstanceDelete(disc_objects::StageInstance),
+    StageInstanceUpdate(disc_objects::StageInstance),
+    TypingStart(disc_objects::TypingStartEvent),
+    UserUpdate(disc_objects::User),
+    VoiceStateUpdate(disc_objects::VoiceState),
+    VoiceServerUpdate(disc_objects::VoiceServerUpdateEvent),
+    WebhooksUpdate(disc_objects::WebhookUpdateEvent),
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -295,12 +295,13 @@ impl Gateway {
 
         let return_string = serde_json::json!({
            "op": check_value["op"],
-            "d": check_value["d"],
+            "d": check_value["d"].clone(),
             "s": check_value["s"],
             "t": returned_type,
             "gateway_type": returned_type
         });
 
+        println!("{:?}",serde_json::from_value::<Payload>(return_string.clone()));
         serde_json::to_string(&return_string).unwrap()
 
     }
@@ -314,6 +315,7 @@ impl Gateway {
                 .expect("Gateway was closed when attempting to read next item")
                 .expect("Error checking to see if connected")
                 .to_string()).await;
+
 
         serde_json::from_str(next_item.as_str()).expect(format!("Failed converting next item in string to payload {} ",next_item).as_str())
 

@@ -7,7 +7,7 @@ use celestialcord::discord;
 use celestialcord::disc_objects;
 use celestialcord::bot::{Bot};
 use celestialcord::discord::Intent;
-use utility_macros::add_fn;
+use celestial_macros::add_fn;
 use tokio::time::{Instant};
 
 async fn on_ready(returned: discord::GatewayEvent, client: bot::BotClient) {
@@ -74,9 +74,6 @@ async fn main() {
         std::env::var("BOT_TOKEN").expect("Put bot token in env_var!"),
         vec![Intent::all()],
     );
-
-
-
 
 
     // add event system, where you add a function to be called to an event.

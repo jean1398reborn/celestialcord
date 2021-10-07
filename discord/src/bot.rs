@@ -78,7 +78,7 @@ impl Bot
     pub async fn read(client: BotClient, read: &mut SplitStream<WbSS>, gateway_event_map: EventMap) {
         loop {
             let payload = Gateway::read_next_payload(read).await;
-
+            println!("{:?}", payload);
             if payload.sequence.is_some() {
                 client.lock().await.sequence = payload.sequence;
             }

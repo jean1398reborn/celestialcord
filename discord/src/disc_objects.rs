@@ -3,7 +3,7 @@ use crate::discord;
 use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
 
-#[derive(Deserialize, Debug, Serialize, Clone)]
+#[derive(Deserialize, Debug, Serialize, Clone, Hash, Eq, PartialEq)]
 #[serde(untagged)]
 pub enum Snowflake {
     Integer(u64),
@@ -49,7 +49,7 @@ pub struct PermissionOverwrite {
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ThreadListSyncEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub channel_ids: Option<Vec<Snowflake>>,
     pub threads: Vec<Channel>,
     pub members: Vec<ThreadMember>,
@@ -57,24 +57,24 @@ pub struct ThreadListSyncEvent {
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildBanEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub user: User,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildEmojisUpdateEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub emojis: Vec<Emoji>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildStickersUpdateEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub emojis: Vec<Emoji>,
 }
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildMembersChunkEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub members: Vec<GuildMember>,
     pub chunk_index: u64,
     pub chunk_count: u64,
@@ -85,13 +85,13 @@ pub struct GuildMembersChunkEvent {
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildRoleEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub role: Role,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildRoleDeleteEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub role_id: Snowflake,
 }
 
@@ -136,7 +136,7 @@ pub struct Integration {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct IntegrationDeleteEvent {
     pub id: Snowflake,
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub application_id: Option<Snowflake>,
 }
 
@@ -228,18 +228,18 @@ pub struct InviteDeleteEvent {
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildIdEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildMemberRemoveEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub user: User,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildMemberUpdateEvent {
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub roles: Vec<Snowflake>,
     pub user: User,
     pub nick: Option<String>,
@@ -254,7 +254,7 @@ pub struct GuildMemberUpdateEvent {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ThreadMembersUpdateEvent {
     pub id: Snowflake,
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub member_count: u64,
     pub added_members: Option<Vec<ThreadMember>>,
     pub removed_member_ids: Option<Vec<Snowflake>>,
@@ -304,8 +304,8 @@ pub struct Channel {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct User {
     pub id: Snowflake,
-    pub username: String,
-    pub discriminator: String,
+    pub username:  Option<String>,
+    pub discriminator:  Option<String>,
     pub avatar: Option<String>,
     pub bot: Option<bool>,
     pub system: Option<bool>,
@@ -439,7 +439,7 @@ pub struct MessageActivity {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ChannelMention {
     pub id: Snowflake,
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
 
     #[serde(rename = "type")]
     pub channel_type: u64,
@@ -458,9 +458,9 @@ pub struct TeamMember {
 pub struct Team {
     pub icon: Option<String>,
     pub id: Snowflake,
+    pub owner_user_id: Snowflake,
     pub members: Vec<TeamMember>,
     pub name: String,
-    pub owner_user_id: Snowflake,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -590,7 +590,7 @@ pub struct Role {
     pub icon: Option<String>,
     pub unicode_emoji: Option<String>,
     pub position: u64,
-    pub permissions: String,
+    pub permissions: u64,
     pub managed: bool,
     pub mentionable: bool,
     pub tags: Option<RoleTag>,
@@ -670,7 +670,7 @@ pub struct ClientStatus {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct PresenceUpdate {
     pub user: User,
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub status: String,
     pub activities: Vec<Activity>,
     pub client_status: ClientStatus,
@@ -696,7 +696,7 @@ pub struct VoiceState {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct StageInstance {
     pub id: Snowflake,
-    pub guild_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
     pub channel_id: Snowflake,
     pub topic: String,
     pub privacy_level: u64,
@@ -824,13 +824,73 @@ pub struct ChannelPinUpdateEvent {
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct ReactionAddEvent {
+pub struct MessageReactionAddEvent {
     pub user_id: Option<Snowflake>,
     pub channel_id: Option<Snowflake>,
     pub message_id: Option<Snowflake>,
     pub guild_id: Option<Snowflake>,
     pub member: Option<GuildMember>,
     pub emoji: Option<Emoji>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MessageDeleteEvent {
+    pub id: Snowflake,
+    pub channel_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MessageBulkDeleteEvent {
+    pub ids: Vec<Snowflake>,
+    pub channel_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MessageReactionRemoveEvent {
+    pub user_id: Option<Snowflake>,
+    pub channel_id: Option<Snowflake>,
+    pub message_id: Option<Snowflake>,
+    pub guild_id: Option<Snowflake>,
+    pub emoji: Option<Emoji>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MessageRemoveAllReactionEvent {
+    pub channel_id: Snowflake,
+    pub message_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct MessageReactionRemoveEmojiEvent {
+    pub channel_id: Snowflake,
+    pub message_id: Option<Snowflake>,
+    pub guild_id: Option<Snowflake>,
+    pub emoji: Emoji,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct TypingStartEvent {
+    pub channel_id: Snowflake,
+    pub guild_id: Option<Snowflake>,
+    pub user_id: Snowflake,
+    pub timestamp: u64,
+    pub member: GuildMember
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct VoiceServerUpdateEvent {
+    pub token : String,
+    pub guild_id: Option<Snowflake>,
+    pub endpoint: Option<String>
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+pub struct WebhookUpdateEvent{
+    pub guild_id: Option<Snowflake>,
+    pub channel_id: Snowflake,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Deserialize, Serialize, Clone)]
