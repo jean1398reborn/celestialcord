@@ -1,7 +1,6 @@
-use futures::future::{FutureExt};
-
 extern crate celestialcord;
 
+use futures::future::{FutureExt};
 use celestialcord::bot;
 use celestialcord::discord;
 use celestialcord::disc_objects;
@@ -15,14 +14,18 @@ async fn on_ready(returned: discord::GatewayEvent, client: bot::BotClient) {
 }
 
 async fn response(message : disc_objects::Message, client: bot::BotClient) {
-    let embed = disc_objects::Embed::new("Hello", "Snootiermoon!", 0xFF0000)
+    let embed = disc_objects::Embed::new("Hello", "Burger man!", 0xFF0000)
         .image("https://c.tenor.com/zDUT9yR2Zz0AAAAC/big-buger-eat-buger.gif");
+
+    let embed2 = disc_objects::Embed::new("Video!", "!", 0x0000FF)
+        .image("https://www.youtube.com/watch?v=5K7aY-_b9sk");
 
     let mut reply = disc_objects::ReplyMessage::new(false)
         .add_embed(embed)
+        .add_embed(embed2)
         .reply_message(message.clone());
 
-    let response = reply.send(message.channel_id.clone(), client.clone()).await;
+    let response = reply.send_with_id(message.channel_id.clone(), client.clone()).await;
 
 }
 
@@ -30,14 +33,14 @@ async fn longtask(message : disc_objects::Message, client: bot::BotClient) {
     let mut reply = disc_objects::ReplyMessage::new(false)
         .content_str("Task started")
         .reply_message(message.clone())
-        .send(message.channel_id.clone(), client.clone()).await;
+        .send_with_id(message.channel_id.clone(), client.clone()).await;
 
     tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
 
     let mut reply = disc_objects::ReplyMessage::new(false)
         .content_str("Task finished")
         .reply_message(message.clone())
-        .send(message.channel_id.clone(), client.clone()).await;
+        .send_with_id(message.channel_id.clone(), client.clone()).await;
 }
 
 async fn on_message(returned: discord::GatewayEvent, client: bot::BotClient) {
@@ -66,7 +69,7 @@ async fn on_message(returned: discord::GatewayEvent, client: bot::BotClient) {
 
 
 
-#[tokio::test]
+#[tokio::main]
 async fn main() {
     // make bot
     let mut bot = Bot::new(

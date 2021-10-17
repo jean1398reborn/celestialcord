@@ -45,9 +45,10 @@ pub struct Client {
     pub heartbeat_interval: u64,
     pub intents: Intent,
     pub sequence: Option<u64>,
+    pub application_id: disc_objects::Snowflake,
 }
 
-#[derive(Deserialize, Debug, Serialize)]
+#[derive(Deserialize, Debug, Serialize, Clone)]
 pub struct Payload {
     #[serde(rename = "op")]
     pub opcode: u32,
@@ -93,7 +94,7 @@ bitflags::bitflags! {
 }
 
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag="t", content="d", rename_all(serialize = "SCREAMING_SNAKE_CASE", deserialize = "SCREAMING_SNAKE_CASE"))]
 pub enum GatewayEvent {
     Hello(disc_objects::Hello),
@@ -174,6 +175,7 @@ impl Client {
             heartbeat_interval: 0,
             intents: intents.into_iter().collect(),
             sequence: None,
+            application_id: disc_objects::Snowflake::Integer(0),
         }
     }
 
@@ -194,7 +196,7 @@ impl Client {
                 false => SerdeNumber(serde_json::Number::from(sequence.unwrap())),
             };
 
-            Gateway::send(1, Some(sequence), None, None, &mut write_stream).await;
+            Gateway::send(1, Some(sequence), client.lock().await.sequence, None, &mut write_stream).await;
 
             sleep(Duration::from_millis(heartbeat_interval)).await;
         }
@@ -238,21 +240,6 @@ impl Client {
         (websocket_stream, response)
     }
 
-    pub async fn check_hello(client : bot::BotClient, read: &mut SplitStream<WbSS>) {
-
-        let client = client.clone();
-        let hello_payload = Gateway::read_next_payload(read).await;
-
-        let data = match hello_payload.data.unwrap() {
-            GatewayEvent::Hello(hello_message) => hello_message,
-            _ => panic!("Did not recieve hello gateway event")
-        };
-
-        let heartbeat_interval: u64 = data.heartbeat_interval;
-
-        client.lock().await.heartbeat_interval = heartbeat_interval;
-    }
-
     fn request_client_new(token: String) -> reqwest::Client {
         let builder = reqwest::ClientBuilder::new();
         let mut headers = reqwest::header::HeaderMap::new();
@@ -280,6 +267,7 @@ impl Gateway {
 
     pub async fn opcode_conversion(check_value : String) -> String {
 
+        println!("{}", check_value);
         let check_value: serde_json::Value = serde_json::from_str(check_value.as_str()).expect("Failed to check opcode in json conversion");
 
         let opcode = check_value["op"].as_u64().expect(format!("{}", check_value["op"]).as_str());
@@ -348,23 +336,27 @@ impl HttpRequest {
         Self { extension, client }
     }
 
-    pub async fn get(&self) -> Result<reqwest::Response, DiscordError> {
+    pub async fn get(&self) ->Result<reqwest::Response, reqwest::Error> {
         let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
 
-        Ok(self
+        self
             .client
             .lock()
             .await
             .request_client
             .get(request_url)
             .send()
-            .await?)
+            .await
     }
 
-    pub async fn post(&self, content: SerdeValue) -> Result<reqwest::Response, DiscordError> {
+    pub async fn post(&self, content: SerdeValue) -> Result<reqwest::Response, reqwest::Error> {
+
+        println!("hi");
         let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
 
-        Ok(self
+        println!("{:#?}", content);
+
+        self
             .client
             .lock()
             .await
@@ -372,7 +364,22 @@ impl HttpRequest {
             .post(request_url)
             .json::<SerdeValue>(&content)
             .send()
-            .await?)
+            .await
+    }
+
+    pub async fn put(&self, content: SerdeValue) -> Result<reqwest::Response, reqwest::Error> {
+
+        let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
+
+        self
+            .client
+            .lock()
+            .await
+            .request_client
+            .put(request_url)
+            .json::<SerdeValue>(&content)
+            .send()
+            .await
     }
 }
 

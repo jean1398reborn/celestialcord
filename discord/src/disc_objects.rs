@@ -1,7 +1,9 @@
 use crate::bot;
 use crate::discord;
+use crate::interactions;
 use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 #[derive(Deserialize, Debug, Serialize, Clone, Hash, Eq, PartialEq)]
 #[serde(untagged)]
@@ -28,6 +30,13 @@ pub enum Nonce {
     String(String),
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum PermissionOverwriteType {
+    Role = 0,
+    Member = 1,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct ThreadMember {
     pub id: Option<Snowflake>,
@@ -41,7 +50,7 @@ pub struct PermissionOverwrite {
     pub id: Snowflake,
 
     #[serde(rename = "type")]
-    pub permission_overwrite_type: u64,
+    pub permission_overwrite_type: PermissionOverwriteType,
 
     pub allow: String,
     pub deny: String,
@@ -157,14 +166,45 @@ pub struct ResolvedData {
     pub messages: Option<std::collections::HashMap<Snowflake, Message>>,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum ApplicationCommandType {
+    ChatInput = 1,
+    User = 2,
+    Message = 3,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum AppCommandOptionType {
+    SubCommand = 1,
+    SubCommandGroup = 2,
+    String = 3,
+    Integer = 4,
+    Boolean = 5,
+    User = 6,
+    Channel = 7,
+    Role = 8,
+    Mentionable = 9,
+    Number = 10,
+}
+
+#[derive(Clone, Deserialize, Debug, Serialize)]
+#[serde(untagged)]
+pub enum AppCommandValue {
+    String(String),
+    Integer(i64),
+    Double(f64),
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct AppMessageInteractionDataOption {
     pub name: String,
 
     // long boi
     #[serde(rename = "type")]
-    pub app_message_interaction_data_type: u64,
-    pub value: Option<u64>,
+    pub app_message_interaction_data_type: AppCommandOptionType,
+    pub value: Option<AppCommandValue>,
     pub options: Option<Vec<AppMessageInteractionDataOption>>,
 
 }
@@ -175,7 +215,7 @@ pub struct InteractionData {
     pub name: String,
 
     #[serde(rename = "type")]
-    pub interaction_data_type: u64,
+    pub interaction_data_type: ApplicationCommandType,
     pub resolved: Option<ResolvedData>,
     pub options: Option<Vec<AppMessageInteractionDataOption>>,
     pub custom_id: Option<String>,
@@ -184,14 +224,22 @@ pub struct InteractionData {
     pub target_id: Option<Snowflake>,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum InteractionType {
+    Ping  = 1,
+    ApplicationCommand = 2,
+    MessageComponent = 3,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Interaction {
     pub id: Snowflake,
     pub application_id: Snowflake,
 
     #[serde(rename = "type")]
-    pub interaction_type: u64,
-    pub interaction_data: Option<Vec<InteractionData>>,
+    pub interaction_type: InteractionType,
+    pub data: Option<InteractionData>,
     pub guild_id: Option<Snowflake>,
     pub channel_id: Option<Snowflake>,
     pub member: Option<GuildMember>, //sent in guilds
@@ -269,12 +317,28 @@ pub struct ThreadMetadata {
     pub invitable: Option<bool>,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum ChannelType {
+    GuildText = 0,
+    Dm = 1,
+    GuildVoice = 2,
+    GroupDm = 3,
+    GuildCategory = 4,
+    GuildNews = 5,
+    GuildStore= 6,
+    GuildNewsThread = 7,
+    GuildPublicThread = 8,
+    GuildPrivateThread = 9,
+    GuildStageVoice = 10
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Channel {
     pub id: Snowflake,
 
     #[serde(rename = "type")]
-    pub channel_type: Option<u64>,
+    pub channel_type: Option<ChannelType>,
     pub guild_id: Option<Snowflake>,
     pub position: Option<u64>,
     pub permission_overwrite: Option<Vec<PermissionOverwrite>>,
@@ -301,6 +365,14 @@ pub struct Channel {
     pub permissions: Option<String>,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum NitroType {
+    None = 0,
+    NitroClassic = 1,
+    Nitro = 2,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct User {
     pub id: Snowflake,
@@ -316,7 +388,7 @@ pub struct User {
     pub verified: Option<bool>,
     pub email: Option<String>,
     pub flags: Option<u64>,
-    pub premium_type: Option<u64>,
+    pub premium_type: Option<NitroType>,
     pub public_flags: Option<u64>,
 
     pub member: Option<Box<GuildMember>>,
@@ -330,8 +402,8 @@ pub struct GuildMember {
     pub roles: Vec<String>,
     pub joined_at: String,
     pub premium_since: Option<String>,
-    pub deaf: bool,
-    pub mute: bool,
+    pub deaf: Option<bool>,
+    pub mute: Option<bool>,
     pub pending: Option<bool>,
     pub permissions: Option<String>,
 
@@ -429,10 +501,19 @@ pub struct Reaction {
     pub emoji: Emoji,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum MessageActivityType {
+    Join = 1,
+    Spectate = 2,
+    Listen = 3,
+    JoinRequest = 5,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct MessageActivity {
     #[serde(rename = "type")]
-    pub message_activity_type: u64,
+    pub message_activity_type: MessageActivityType,
     pub party_id: Option<String>,
 }
 
@@ -442,7 +523,7 @@ pub struct ChannelMention {
     pub guild_id: Option<Snowflake>,
 
     #[serde(rename = "type")]
-    pub channel_type: u64,
+    pub channel_type: ChannelType,
     pub name: String,
 }
 
@@ -472,10 +553,20 @@ pub struct SelectOption {
     pub default: Option<bool>,
 }
 
+// May be quickly broken as discord adds new component types,
+// use https://discord.com/developers/docs/interactions/message-components#component-object-component-types to update
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum ComponentType {
+    ActionRow = 1,
+    Button = 2,
+    SelectMenu = 3,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Component {
     #[serde(rename = "type")]
-    pub component_type: u64,
+    pub component_type: ComponentType,
     pub custom_id: Option<String>,
     pub disabled: Option<bool>,
     pub style: Option<u64>,
@@ -515,7 +606,7 @@ pub struct MessageInteraction {
     pub id: Snowflake,
 
     #[serde(rename = "type")]
-    pub message_interaction_type: u64,
+    pub message_interaction_type: InteractionType,
     pub name: String,
     pub user: User,
 }
@@ -535,6 +626,34 @@ pub struct StickerItem {
     pub format_type: u64,
 }
 
+// https://discord.com/developers/docs/resources/channel#message-object-message-types
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum MessageType {
+    Default = 0,
+    RecipientAdd = 1,
+    RecipientRemove = 2,
+    Call = 3,
+    ChannelNameChange = 4,
+    ChannelIconChange = 5,
+    ChannelPinnedMessage = 6,
+    GuildMemberJoin = 7,
+    UserPremiumGuildSubscription = 8,
+    UserPremiumGuildSubscriptionT1 = 9,
+    UserPremiumGuildSubscriptionT2 = 10,
+    UserPremiumGuildSubscriptionT3 = 11,
+    ChannelFollowAdd = 12,
+    GuildDiscoveryDisqualified = 14,
+    GuildDiscoveryRequalified = 15,
+    GuildDiscoveryGracePeriodInitialWarning = 16,
+    GuildDiscoveryGracePeriodFinalWarning = 17,
+    ThreadCreated = 18,
+    Reply = 19,
+    ChatInputCommand = 20,
+    ThreadStarterMessage = 21,
+    GuildInviteReminder = 22,
+    ContextMenuCommand = 23,
+}
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Message {
     pub id: Snowflake,
@@ -558,7 +677,7 @@ pub struct Message {
     pub webhook_id: Option<Snowflake>,
 
     #[serde(rename = "type")]
-    pub message_type: u64,
+    pub message_type: MessageType,
     pub activity: Option<MessageActivity>,
     pub application: Option<Application>,
     pub application_id: Option<Snowflake>,
@@ -638,12 +757,23 @@ pub struct ActivityButton {
     pub url: String,
 }
 
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum ActivityType {
+    Game = 0,
+    Streaming = 1,
+    Listening = 2,
+    Watching = 3,
+    Custom = 4,
+    Competing = 5,
+}
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Activity {
     pub name: String,
 
     #[serde(rename = "type")]
-    pub activity_type: u64,
+    pub activity_type: ActivityType,
 
     pub url: Option<String>,
     pub created_at: u64,
@@ -717,6 +847,23 @@ pub struct WelcomeScreen {
     pub welcome_channels: Vec<WelcomeScreenChannel>,
 }
 
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum StickerType {
+    Standard = 1,
+    Guild = 2,
+}
+
+#[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
+#[repr(u64)]
+pub enum StickerFormatType {
+    PNG = 1,
+    APNG = 2,
+    Lottie = 3,
+}
+
+
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Sticker {
     pub id: Snowflake,
@@ -727,8 +874,8 @@ pub struct Sticker {
     pub asset: String,
 
     #[serde(rename = "type")]
-    pub sticker_type: u64,
-    pub format_type: u64,
+    pub sticker_type: StickerType,
+    pub format_type: StickerFormatType,
     pub available: Option<bool>,
     pub guild_id: Option<Snowflake>,
     pub user: Option<User>,
@@ -970,6 +1117,7 @@ pub struct ReplyMessage {
     pub embeds: Option<Vec<Embed>>,
     pub message_reference: Option<Reply>,
     pub sticker_ids: Option<Vec<Snowflake>>,
+    pub ephemeral: bool,
 }
 
 impl Reply {
@@ -994,6 +1142,7 @@ impl ReplyMessage {
             embeds: None,
             message_reference: None,
             sticker_ids: None,
+            ephemeral: false,
         }
     }
 
@@ -1004,6 +1153,12 @@ impl ReplyMessage {
 
     pub fn content_string(mut self, content: String) -> ReplyMessage {
         self.content = Some(content);
+        self
+    }
+
+    /// Toggles on/off the ephemeral flag for interaction based responses.
+    pub fn ephemeral(mut self) -> ReplyMessage {
+        self.ephemeral = !self.ephemeral;
         self
     }
 
@@ -1027,7 +1182,7 @@ impl ReplyMessage {
         self
     }
 
-    pub async fn send(&self, channel_id: Snowflake, client: bot::BotClient) -> Message {
+    pub async fn send_with_id(&self, channel_id: Snowflake, client: bot::BotClient) -> Message {
         let message = serde_json::json!({
             "content": self.content,
             "tts": self.tts,
@@ -1054,6 +1209,55 @@ impl ReplyMessage {
             .expect("Failed to turn response into message! ");
 
         response_message
+    }
+
+    pub async fn callback_with_interaction(&self, interaction: Interaction, client: bot::BotClient) {
+
+        let flags = if self.ephemeral == true {
+            Some(1 << 6)
+        } else {
+            None
+        };
+
+        let message = serde_json::json!({
+            "type": 4,
+            "data": {
+                    "content": self.content,
+                    "tts": self.tts,
+                    "embeds": self.embeds,
+                    "message_reference": self.message_reference,
+                    "sticker_ids": self.sticker_ids,
+                    "flags": flags
+                }
+        });
+
+        let extension = format!("/interactions/{}/{}/callback", interaction.id, interaction.token);
+        let payload = discord::HttpRequest::string_new(extension, client).await;
+
+        payload.post(message).await;
+    }
+
+    pub async fn send_with_interaction(&self, interaction: Interaction, client: bot::BotClient) {
+
+        let flags = if self.ephemeral == true {
+            Some(1 << 6)
+        } else {
+            None
+        };
+
+        let message = serde_json::json!({
+            "content": self.content,
+            "tts": self.tts,
+            "embeds": self.embeds,
+            "message_reference": self.message_reference,
+            "sticker_ids": self.sticker_ids,
+            "flags": flags
+        });
+
+        let extension = format!("/webhooks/{}/{}", client.lock().await.application_id.clone(), interaction.token);
+        let payload = discord::HttpRequest::string_new(extension, client).await;
+
+        payload.post(message).await;
     }
 }
 
