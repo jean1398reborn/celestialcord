@@ -272,8 +272,6 @@ pub struct InviteDeleteEvent {
     pub code: String,
 }
 
-
-
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct GuildIdEvent {
     pub guild_id: Option<Snowflake>,
