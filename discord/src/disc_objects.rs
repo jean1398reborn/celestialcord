@@ -2,8 +2,8 @@ use crate::bot;
 use crate::discord;
 use crate::interactions;
 use serde::{Deserialize, Serialize};
-use std::fmt::Formatter;
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use std::fmt::Formatter;
 
 #[derive(Deserialize, Debug, Serialize, Clone, Hash, Eq, PartialEq)]
 #[serde(untagged)]
@@ -139,7 +139,7 @@ pub struct Integration {
     pub subscriber_count: Option<u64>,
     pub revoked: Option<bool>,
     pub application: IntegrationApplication,
-    pub guild_id: Option<Snowflake> // present in integration create && update event
+    pub guild_id: Option<Snowflake>, // present in integration create && update event
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -154,7 +154,7 @@ pub struct InviteStageInstance {
     pub members: Vec<GuildMember>,
     pub participant_count: u64,
     pub speaker_count: u64,
-    pub topic: String
+    pub topic: String,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -206,7 +206,6 @@ pub struct AppMessageInteractionDataOption {
     pub app_message_interaction_data_type: AppCommandOptionType,
     pub value: Option<AppCommandValue>,
     pub options: Option<Vec<AppMessageInteractionDataOption>>,
-
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -227,7 +226,7 @@ pub struct InteractionData {
 #[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
 #[repr(u64)]
 pub enum InteractionType {
-    Ping  = 1,
+    Ping = 1,
     ApplicationCommand = 2,
     MessageComponent = 3,
 }
@@ -243,10 +242,10 @@ pub struct Interaction {
     pub guild_id: Option<Snowflake>,
     pub channel_id: Option<Snowflake>,
     pub member: Option<GuildMember>, //sent in guilds
-    pub user: Option<User>, //sent in dms
+    pub user: Option<User>,          //sent in dms
     pub token: String,
     pub version: u64,
-    pub message: Option<Message>
+    pub message: Option<Message>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -262,7 +261,7 @@ pub struct InviteCreateEvent {
     pub target_user: Option<User>,
     pub target_application: Option<Application>,
     pub temporary: bool,
-    pub uses: u64
+    pub uses: u64,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -324,11 +323,11 @@ pub enum ChannelType {
     GroupDm = 3,
     GuildCategory = 4,
     GuildNews = 5,
-    GuildStore= 6,
+    GuildStore = 6,
     GuildNewsThread = 7,
     GuildPublicThread = 8,
     GuildPrivateThread = 9,
-    GuildStageVoice = 10
+    GuildStageVoice = 10,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
@@ -374,8 +373,8 @@ pub enum NitroType {
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct User {
     pub id: Snowflake,
-    pub username:  Option<String>,
-    pub discriminator:  Option<String>,
+    pub username: Option<String>,
+    pub discriminator: Option<String>,
     pub avatar: Option<String>,
     pub bot: Option<bool>,
     pub system: Option<bool>,
@@ -845,7 +844,6 @@ pub struct WelcomeScreen {
     pub welcome_channels: Vec<WelcomeScreenChannel>,
 }
 
-
 #[derive(Serialize_repr, Deserialize_repr, Debug, Clone, Hash, Eq, PartialEq)]
 #[repr(u64)]
 pub enum StickerType {
@@ -860,7 +858,6 @@ pub enum StickerFormatType {
     APNG = 2,
     Lottie = 3,
 }
-
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct Sticker {
@@ -1022,18 +1019,18 @@ pub struct TypingStartEvent {
     pub guild_id: Option<Snowflake>,
     pub user_id: Snowflake,
     pub timestamp: u64,
-    pub member: GuildMember
+    pub member: GuildMember,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
 pub struct VoiceServerUpdateEvent {
-    pub token : String,
+    pub token: String,
     pub guild_id: Option<Snowflake>,
-    pub endpoint: Option<String>
+    pub endpoint: Option<String>,
 }
 
 #[derive(Clone, Deserialize, Debug, Serialize)]
-pub struct WebhookUpdateEvent{
+pub struct WebhookUpdateEvent {
     pub guild_id: Option<Snowflake>,
     pub channel_id: Snowflake,
 }
@@ -1207,55 +1204,6 @@ impl ReplyMessage {
             .expect("Failed to turn response into message! ");
 
         response_message
-    }
-
-    pub async fn callback_with_interaction(&self, interaction: Interaction, client: bot::BotClient) {
-
-        let flags = if self.ephemeral == true {
-            Some(1 << 6)
-        } else {
-            None
-        };
-
-        let message = serde_json::json!({
-            "type": 4,
-            "data": {
-                    "content": self.content,
-                    "tts": self.tts,
-                    "embeds": self.embeds,
-                    "message_reference": self.message_reference,
-                    "sticker_ids": self.sticker_ids,
-                    "flags": flags
-                }
-        });
-
-        let extension = format!("/interactions/{}/{}/callback", interaction.id, interaction.token);
-        let payload = discord::HttpRequest::string_new(extension, client).await;
-
-        payload.post(message).await;
-    }
-
-    pub async fn send_with_interaction(&self, interaction: Interaction, client: bot::BotClient) {
-
-        let flags = if self.ephemeral == true {
-            Some(1 << 6)
-        } else {
-            None
-        };
-
-        let message = serde_json::json!({
-            "content": self.content,
-            "tts": self.tts,
-            "embeds": self.embeds,
-            "message_reference": self.message_reference,
-            "sticker_ids": self.sticker_ids,
-            "flags": flags
-        });
-
-        let extension = format!("/webhooks/{}/{}", client.lock().await.application_id.clone(), interaction.token);
-        let payload = discord::HttpRequest::string_new(extension, client).await;
-
-        payload.post(message).await;
     }
 }
 

@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::net::TcpStream;
+use tokio::time::{sleep, Duration};
 use tokio_tungstenite::{
     connect_async, tungstenite, tungstenite::protocol::Message, MaybeTlsStream, WebSocketStream,
 };
-use tokio::time::{sleep, Duration};
 
 use futures_util::{
     stream::{SplitSink, SplitStream},
@@ -15,12 +15,12 @@ use futures_util::{
 };
 type WbSS = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
+use crate::disc_objects::GatewayEventBinding;
 use serde_json::value::Value as SerdeValue;
 use SerdeValue::Null as SerdeNull;
 use SerdeValue::Number as SerdeNumber;
 use SerdeValue::Object as SerdeObject;
 use SerdeValue::String as SerdeString;
-use crate::disc_objects::GatewayEventBinding;
 
 type SerdeMap = serde_json::map::Map<String, SerdeValue>;
 
@@ -29,10 +29,10 @@ pub const VALID_API: [u32; 3] = [7, 8, 9];
 pub const LIBRARY_NAME: &'static str = "Celestial";
 
 pub static USER_AGENT: &str = concat!(
-"DiscordBot (",
-"https://github.com/jean1398reborn/Celestial ",
-env!("CARGO_PKG_VERSION"),
-")",
+    "DiscordBot (",
+    "https://github.com/jean1398reborn/Celestial ",
+    env!("CARGO_PKG_VERSION"),
+    ")",
 );
 
 #[derive(Debug)]
@@ -93,9 +93,15 @@ bitflags::bitflags! {
     }
 }
 
-
 #[derive(Debug, Deserialize, Serialize, Clone)]
-#[serde(tag="t", content="d", rename_all(serialize = "SCREAMING_SNAKE_CASE", deserialize = "SCREAMING_SNAKE_CASE"))]
+#[serde(
+    tag = "t",
+    content = "d",
+    rename_all(
+        serialize = "SCREAMING_SNAKE_CASE",
+        deserialize = "SCREAMING_SNAKE_CASE"
+    )
+)]
 pub enum GatewayEvent {
     Hello(disc_objects::Hello),
     Ready(disc_objects::ReadyEvent),
@@ -183,20 +189,27 @@ impl Client {
         client: bot::BotClient,
         mut write_stream: &mut SplitSink<WbSS, Message>,
     ) {
-        let heartbeat_interval = client.lock().await.heartbeat_interval.clone();
+        let heartbeat_interval = client.read().await.heartbeat_interval.clone();
         let first_interval = heartbeat_interval as f64 * rand::random::<f64>();
 
         sleep(Duration::from_secs_f64(first_interval / 1000.0)).await;
 
         loop {
-            let sequence = client.lock().await.sequence.clone();
+            let sequence = client.read().await.sequence.clone();
 
             let sequence = match sequence.is_none() {
                 true => SerdeNull,
                 false => SerdeNumber(serde_json::Number::from(sequence.unwrap())),
             };
 
-            Gateway::send(1, Some(sequence), client.lock().await.sequence, None, &mut write_stream).await;
+            Gateway::send(
+                1,
+                Some(sequence),
+                client.read().await.sequence,
+                None,
+                &mut write_stream,
+            )
+            .await;
 
             sleep(Duration::from_millis(heartbeat_interval)).await;
         }
@@ -209,10 +222,9 @@ impl Client {
         }
     }
 
-    pub async fn identify(client : bot::BotClient, mut write_stream: &mut SplitSink<WbSS, Message>) {
-
+    pub async fn identify(client: bot::BotClient, mut write_stream: &mut SplitSink<WbSS, Message>) {
         let client = client.clone();
-        let client_guard = client.lock().await;
+        let client_guard = client.read().await;
 
         let data = serde_json::json!({
             "token": client_guard.token,
@@ -227,11 +239,12 @@ impl Client {
         Gateway::send(2, Some(data), None, None, &mut write_stream).await;
     }
 
-
-    pub async fn connect(client : bot::BotClient) -> (WbSS, tungstenite::handshake::client::Response) {
+    pub async fn connect(
+        client: bot::BotClient,
+    ) -> (WbSS, tungstenite::handshake::client::Response) {
         let client = client.clone();
 
-        let connection_url = url::Url::parse(client.lock().await.gateway.url.as_str()).unwrap();
+        let connection_url = url::Url::parse(client.read().await.gateway.url.as_str()).unwrap();
 
         let (websocket_stream, response) = connect_async(connection_url)
             .await
@@ -265,12 +278,14 @@ impl Gateway {
         }
     }
 
-    pub async fn opcode_conversion(check_value : String) -> String {
-
+    pub async fn opcode_conversion(check_value: String) -> String {
         println!("{}", check_value);
-        let check_value: serde_json::Value = serde_json::from_str(check_value.as_str()).expect("Failed to check opcode in json conversion");
+        let check_value: serde_json::Value = serde_json::from_str(check_value.as_str())
+            .expect("Failed to check opcode in json conversion");
 
-        let opcode = check_value["op"].as_u64().expect(format!("{}", check_value["op"]).as_str());
+        let opcode = check_value["op"]
+            .as_u64()
+            .expect(format!("{}", check_value["op"]).as_str());
 
         let returned_type = match opcode {
             11 => SerdeString(String::from("HEARTBEAT_OK")),
@@ -278,7 +293,7 @@ impl Gateway {
             9 => SerdeString(String::from("INVALID_SESSION")),
             7 => SerdeString(String::from("RECONNECT")),
             1 => SerdeString(String::from("HEARTBEAT")),
-            _ => check_value["t"].clone()
+            _ => check_value["t"].clone(),
         };
 
         let return_string = serde_json::json!({
@@ -289,28 +304,40 @@ impl Gateway {
             "gateway_type": returned_type
         });
 
-        println!("{:?}",serde_json::from_value::<Payload>(return_string.clone()));
+        println!(
+            "{:?}",
+            serde_json::from_value::<Payload>(return_string.clone())
+        );
         serde_json::to_string(&return_string).unwrap()
-
     }
 
     pub async fn read_next_payload(read_stream: &mut SplitStream<WbSS>) -> Payload {
-
         let next_item = Gateway::opcode_conversion(
             read_stream
                 .next()
                 .await
                 .expect("Gateway was closed when attempting to read next item")
                 .expect("Error checking to see if connected")
-                .to_string()).await;
+                .to_string(),
+        )
+        .await;
 
-
-        serde_json::from_str(next_item.as_str()).expect(format!("Failed converting next item in string to payload {} ",next_item).as_str())
-
+        serde_json::from_str(next_item.as_str()).expect(
+            format!(
+                "Failed converting next item in string to payload {} ",
+                next_item
+            )
+            .as_str(),
+        )
     }
 
-    pub async fn send(opcode: u64, data: Option<SerdeValue>, sequence: Option<u64>, gateway_type: Option<disc_objects::GatewayEventBinding>, sink: &mut SplitSink<WbSS, Message>) {
-
+    pub async fn send(
+        opcode: u64,
+        data: Option<SerdeValue>,
+        sequence: Option<u64>,
+        gateway_type: Option<disc_objects::GatewayEventBinding>,
+        sink: &mut SplitSink<WbSS, Message>,
+    ) {
         let send_payload = serde_json::json!({
             "op": opcode,
             "d" : data,
@@ -318,8 +345,8 @@ impl Gateway {
             "t" : gateway_type,
         });
 
-        let send_payload =
-            serde_json::to_string(&send_payload).expect("Failed converting payload to string for sending");
+        let send_payload = serde_json::to_string(&send_payload)
+            .expect("Failed converting payload to string for sending");
         sink.send(Message::Text(send_payload)).await;
     }
 }
@@ -336,12 +363,11 @@ impl HttpRequest {
         Self { extension, client }
     }
 
-    pub async fn get(&self) ->Result<reqwest::Response, reqwest::Error> {
-        let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
+    pub async fn get(&self) -> Result<reqwest::Response, reqwest::Error> {
+        let request_url = format!("{}{}", self.client.read().await.api_url, self.extension);
 
-        self
-            .client
-            .lock()
+        self.client
+            .read()
             .await
             .request_client
             .get(request_url)
@@ -350,15 +376,13 @@ impl HttpRequest {
     }
 
     pub async fn post(&self, content: SerdeValue) -> Result<reqwest::Response, reqwest::Error> {
-
         println!("hi");
-        let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
+        let request_url = format!("{}{}", self.client.read().await.api_url, self.extension);
 
         println!("{:#?}", content);
 
-        self
-            .client
-            .lock()
+        self.client
+            .read()
             .await
             .request_client
             .post(request_url)
@@ -368,12 +392,10 @@ impl HttpRequest {
     }
 
     pub async fn put(&self, content: SerdeValue) -> Result<reqwest::Response, reqwest::Error> {
+        let request_url = format!("{}{}", self.client.read().await.api_url, self.extension);
 
-        let request_url = format!("{}{}", self.client.lock().await.api_url, self.extension);
-
-        self
-            .client
-            .lock()
+        self.client
+            .read()
             .await
             .request_client
             .put(request_url)
@@ -381,5 +403,17 @@ impl HttpRequest {
             .send()
             .await
     }
-}
 
+    pub async fn patch(&self, content: SerdeValue) -> Result<reqwest::Response, reqwest::Error> {
+        let request_url = format!("{}{}", self.client.read().await.api_url, self.extension);
+
+        self.client
+            .read()
+            .await
+            .request_client
+            .patch(request_url)
+            .json::<SerdeValue>(&content)
+            .send()
+            .await
+    }
+}
